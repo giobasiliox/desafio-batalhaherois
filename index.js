@@ -61,6 +61,24 @@ app.get('/heroi/:id', async (req, res) => {
     }
 });
 
+app.get('/heroi/:nome', async (req, res) => {
+    try {
+        const { nome } = req.params;
+
+        const result = await pool.query('SELECT * FROM herois WHERE nome = $1', [nome]);
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]);
+        } else {
+            res.status(404).send('Herói não encontrado');
+        }
+    } catch (error) {
+        console.error('Erro ao buscar herói:', error);
+        if (!res.headersSent) {
+            res.status(500).send('Erro ao buscar herói');
+        }
+    }
+});
+
 app.put('/heroi/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -86,7 +104,7 @@ app.delete('/heroi/:id', async (req, res) => {
     }
 });
 
-//rota para batalhar, fazen
+//batalha
 
 app.get('/batalha/:id1/:id2', async (req, res) => {
     try {
