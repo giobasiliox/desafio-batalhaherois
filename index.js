@@ -30,6 +30,18 @@ app.post('/heroi', async (req, res) => {
     }
 });
 
+app.get('/herois', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM herois');
+        res.json({
+            total: result.rowCount,
+            heróis: result.rows,
+        });
+    } catch (error) {
+        console.error('Erro ao buscar heróis:', error);
+        res.status(500).send('Erro ao buscar heróis');
+    }
+});
 
 
 
