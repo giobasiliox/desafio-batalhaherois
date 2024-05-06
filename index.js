@@ -18,6 +18,17 @@ const pool = new Pool({
     port: 7007, //mudar a porta para 7007 ou 5432   
 });
 
+app.post('/heroi', async (req, res) => {
+    try {
+        const { nome, nivel, hp, ataque, defesa, poder } = req.body;
+
+        await pool.query(`INSERT INTO herois (nome, nivel, hp, ataque, defesa, poder) VALUES ($1, $2, $3, $4, $5, $6)`, [nome, nivel, hp, ataque, defesa, poder]);
+        res.status(201).send({ mensagem: 'Herói cadastrado com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao adicionar heroi:', error);
+        res.status(500).send('Erro ao adicionar herói');
+    }
+});
 
 
 
