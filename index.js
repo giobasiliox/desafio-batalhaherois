@@ -48,10 +48,41 @@ app.get('/heroi/:id', async (req, res) => {
         const { id } = req.params;
 
         const result = await pool.query('SELECT * FROM herois WHERE id = $1', [id]);
-        res.json(result.rows[0]);
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]);
+        } else {
+            res.status(404).send('Herói não encontrado');
+        }
     } catch (error) {
         console.error('Erro ao buscar herói:', error);
-        res.status(500).send('Erro ao buscar herói');
+        if (!res.headersSent) {
+            res.status(500).send('Erro ao buscar herói');
+        }
+    }
+});
+
+app.put('/heroi/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nome, nivel, hp, ataque, defesa, poder } = req.body;
+
+        await pool.query('UPDATE herois SET nome = $1, nivel = $2, hp = $3, ataque = $4, defesa = $5, poder = $6 WHERE id = $7', [nome, nivel, hp, ataque, defesa, poder, id]);
+        res.status(200).send({ mensagem: 'Herói atualizado com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao atualizar herói:', error);
+        res.status(500).send('Erro ao atualizar herói');
+    }
+} );
+
+app.delete('/heroi/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        await pool.query('DELETE FROM herois WHERE id = $1', [id]);
+        res.status(200).send({ mensagem: 'Herói deletado com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao deletar herói:', error);
+        res.status(500).send('Erro ao deletar herói');
     }
 });
 
