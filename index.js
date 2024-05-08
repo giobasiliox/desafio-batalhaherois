@@ -14,8 +14,8 @@ const pool = new Pool({
     user: 'postgres',
     host: 'localhost',
     database: 'desafio_batalha',
-    password: 'ds564', //mudar a senha para ds564 ou 811867
-    port: 7007, //mudar a porta para 7007 ou 5432   
+    password: '811867', //mudar a senha para ds564 ou 811867
+    port: 5432, //mudar a porta para 7007 ou 5432   
 });
 
 app.post('/heroi', async (req, res) => {
@@ -61,23 +61,23 @@ app.get('/heroi/:id', async (req, res) => {
     }
 });
 
-app.get('/heroi/:nome', async (req, res) => {
+app.get('/heroi/nome/:nome', async (req, res) => {
     try {
         const { nome } = req.params;
-
         const result = await pool.query('SELECT * FROM herois WHERE nome = $1', [nome]);
-        if (result.rows.length > 0) {
-            res.json(result.rows[0]);
+        if (result.rowCount === 0) {
+            res.status(404).send({ mensagem: 'Herói não encontrado' });
         } else {
-            res.status(404).send('Herói não encontrado');
+            res.json(result.rows[0]);
+            console.log('Resultados da consulta:', result.rows);
+
         }
     } catch (error) {
-        console.error('Erro ao buscar herói:', error);
-        if (!res.headersSent) {
-            res.status(500).send('Erro ao buscar herói');
-        }
+        console.error('Erro ao obter herói por nome:', error);
+        res.status(500).send('Erro ao obter herói por nome');
     }
 });
+
 
 app.put('/heroi/:id', async (req, res) => {
     try {
@@ -163,6 +163,43 @@ app.get('/batalhas', async (req, res) => {
         res.status(500).send('Erro ao buscar batalhas');
     }
 });
+
+    app.get('/batalhas/heroi/:nome', async (req, res) => {
+        try {
+            const { nome } = req.params;
+            
+            const result = await pool.query(`
+                SELECT 
+                    batalha.id as numero_batalha,
+                    batalha.id_heroi1 as heroi1_id, 
+                    heroi1.nome as heroi1_nome, 
+                    batalha.id_heroi2 as heroi2_id, 
+                    heroi2.nome as heroi2_nome,
+                    herois.*
+                FROM 
+                    batalha 
+                INNER JOIN 
+                    herois as heroi1 ON batalha.id_heroi1 = heroi1.id
+                INNER JOIN 
+                    herois as heroi2 ON batalha.id_heroi2 = heroi2.id
+                WHERE 
+                    heroi1.nome = $1 OR heroi2.nome = $1
+            `, [nome]);
+            
+            if (result.rowCount === 0) {
+                res.status(404).send({ mensagem: 'Nenhuma batalha encontrada para esse herói' });
+            } else {
+                res.json({
+                    total: result.rowCount,
+                    batalhas: result.rows,
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao buscar batalhas por nome de herói:', error);
+            res.status(500).send('Erro ao buscar batalhas por nome de herói');
+        }
+    });    
+
 
 
 
