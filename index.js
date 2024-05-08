@@ -14,16 +14,20 @@ const pool = new Pool({
     user: 'postgres',
     host: 'localhost',
     database: 'desafio_batalha',
-    password: '811867', //mudar a senha para ds564 ou 811867
-    port: 5432, //mudar a porta para 7007 ou 5432   
+    password: 'ds564', //mudar a senha para ds564 ou 811867
+    port: 7007, //mudar a porta para 7007 ou 5432   
 });
 
 app.post('/heroi', async (req, res) => {
     try {
         const { nome, nivel, hp, ataque, defesa, poder } = req.body;
 
-        await pool.query(`INSERT INTO herois (nome, nivel, hp, ataque, defesa, poder) VALUES ($1, $2, $3, $4, $5, $6)`, [nome, nivel, hp, ataque, defesa, poder]);
-        res.status(201).send({ mensagem: 'Herói cadastrado com sucesso!' });
+        if(nome === '' || nivel === '' || hp === '' || ataque === '' || defesa === '' || poder === ''   ){
+            return res.status(400).send({ mensagem: 'Os campos não podem estar vazios. Escreva novamente corretamente.' });
+        }else{
+            await pool.query(`INSERT INTO herois (nome, nivel, hp, ataque, defesa, poder) VALUES ($1, $2, $3, $4, $5, $6)`, [nome, nivel, hp, ataque, defesa, poder]);
+            res.status(201).send({ mensagem: 'Herói cadastrado com sucesso!' });
+        }
     } catch (error) {
         console.error('Erro ao adicionar heroi:', error);
         res.status(500).send('Erro ao adicionar herói');
@@ -68,7 +72,7 @@ app.get('/heroi/nome/:nome', async (req, res) => {
         if (result.rowCount === 0) {
             res.status(404).send({ mensagem: 'Herói não encontrado' });
         } else {
-            res.json(result.rows[0]);
+            res.json(result.rows);
             console.log('Resultados da consulta:', result.rows);
 
         }
@@ -84,8 +88,11 @@ app.put('/heroi/:id', async (req, res) => {
         const { id } = req.params;
         const { nome, nivel, hp, ataque, defesa, poder } = req.body;
 
+        if(nome === '' || nivel === '' || hp === '' || ataque === '' || defesa === '' || poder === ''   ){
+            return res.status(400).send({ mensagem: 'Os campos não podem estar vazios. Escreva novamente corretamente.' });
+        }else{
         await pool.query('UPDATE herois SET nome = $1, nivel = $2, hp = $3, ataque = $4, defesa = $5, poder = $6 WHERE id = $7', [nome, nivel, hp, ataque, defesa, poder, id]);
-        res.status(200).send({ mensagem: 'Herói atualizado com sucesso!' });
+        res.status(200).send({ mensagem: 'Herói atualizado com sucesso!' });}
     } catch (error) {
         console.error('Erro ao atualizar herói:', error);
         res.status(500).send('Erro ao atualizar herói');
@@ -164,41 +171,61 @@ app.get('/batalhas', async (req, res) => {
     }
 });
 
-    app.get('/batalhas/heroi/:nome', async (req, res) => {
-        try {
-            const { nome } = req.params;
+
+
+app.get('/batalhas/:nome', async (req, res) => {
+    const { nome } = req.params;
+    try {
+        const result = await pool.query('SELECT * FROM herois WHERE nome = $1', [nome]);
+        if (result.rowCount === 0) {
+            res.status(404).send({ mensagem: 'Herói não encontrado' });
+        } else {
+            const heroi = result.rows[0];
             
-            const result = await pool.query(`
-                SELECT 
-                    batalha.id as numero_batalha,
-                    batalha.id_heroi1 as heroi1_id, 
-                    heroi1.nome as heroi1_nome, 
-                    batalha.id_heroi2 as heroi2_id, 
-                    heroi2.nome as heroi2_nome,
-                    herois.*
-                FROM 
-                    batalha 
-                INNER JOIN 
-                    herois as heroi1 ON batalha.id_heroi1 = heroi1.id
-                INNER JOIN 
-                    herois as heroi2 ON batalha.id_heroi2 = heroi2.id
-                WHERE 
-                    heroi1.nome = $1 OR heroi2.nome = $1
-            `, [nome]);
+            const batalhas = await pool.query('SELECT batalha.id as numero_batalha, batalha.id_heroi1 as heroi1, batalha.id_heroi2 as heroi2, herois.* FROM batalha INNER JOIN herois ON batalha.vencedor = herois.id WHERE batalha.id_heroi1 = $1 OR batalha.id_heroi2 = $1', [heroi.id]);
             
-            if (result.rowCount === 0) {
-                res.status(404).send({ mensagem: 'Nenhuma batalha encontrada para esse herói' });
-            } else {
-                res.json({
-                    total: result.rowCount,
-                    batalhas: result.rows,
-                });
-            }
-        } catch (error) {
-            console.error('Erro ao buscar batalhas por nome de herói:', error);
-            res.status(500).send('Erro ao buscar batalhas por nome de herói');
+            
+            const batalhasFormatadas = batalhas.rows.map(batalha => {
+                return {
+                    id: batalha.numero_batalha,
+                    heroi_1: {
+                        nome: batalha.nome,
+                        nivel: batalha.nivel,
+                        hp: batalha.hp,
+                        ataque: batalha.ataque,
+                        defesa: batalha.defesa,
+                        poder: batalha.poder
+                    },
+                    heroi_2: {
+                        nome: batalha.nome,
+                        nivel: batalha.nivel,
+                        hp: batalha.hp,
+                        ataque: batalha.ataque,
+                        defesa: batalha.defesa,
+                        poder: batalha.poder
+                    },
+                    vencedor: batalha.nome
+                };
+            });
+
+            res.json({
+                total: batalhas.rowCount,
+                batalhas: batalhasFormatadas,
+            });
+
         }
-    });    
+    } catch (error) {
+        console.error('Erro ao obter herói por nome:', error);
+        res.status(500).send('Erro ao obter herói por nome');
+    }
+});
+
+
+
+
+
+
+
 
 
 
